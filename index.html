@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title>Arkanoid - 6pack</title>
+        <link rel="stylesheet" type="text/css" href="css/styles.css" />        
+        <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+        <script type="text/javascript">
+            JSON.clone = function (obj) {
+                return JSON.parse( JSON.stringify( obj ) );
+            };
+            
+            var maps = [
+                {
+                    level : 1,
+                    urlMap : "maps/mapaBase.csv"
+                },
+                {
+                    level : 2,
+                    urlMap : "maps/mapa01.csv"
+                },
+                {
+                    level : 3,
+                    urlMap : "maps/mapa02.csv"
+                },
+                {
+                    level : 4,
+                    urlMap : "maps/mapa03.csv"
+                }
+            ];
+            var widthBlock = 61; // Ancho de cada bloque
+            var heightBlock = 21; // Alto de cada bloque
+            dx1 = 180 * Math.PI/ 180;           
+            var dx =  Math.cos(dx1) * 20; // distancia en la que se mueve la nave en X
+            var dy = 10;// distancia en la que se mueve la nave en Y
+            var x = 340; // Valor inicial de la nave en X
+            var y = 420;// Valor inicial de la nave en Y
+            var ballX = 260; // Valor inicial de la nave en X
+            var ballY = 411;// Valor inicial de la nave en Y
+            var valCol = 0; 
+            var valRow = 0;
+            var blocks  = new Array();
+            var tempBlock;
+            var speedBlock = 0;
+            var massBlock = 0;
+            var lifeBlock = 0;
+            var blockImage;
+            var spaceCraftObj = {x:x, y:y, width:120, height:20, velocity: 0, limit: 0};
+            
+            var canvasMinX = 0;
+            var canvasMaxX = 795; 
+            
+            var game;
+            var score = 0;
+            var level = 0;
+            var lives = 3;
+            var increScore = 10;
+            
+            tempSpeed = 10;
+            tempRadius = 8;
+            tempAngle = 272;
+            tempRadians = tempAngle * Math.PI/ 180;
+            tempvelocityx = Math.cos(tempRadians) * tempSpeed;
+            tempvelocityy = Math.sin(tempRadians) * tempSpeed;
+            ball = {
+                x:ballX,
+                y:ballY,
+                nextX: x,
+                nextY: y,
+                radius:tempRadius,
+                speed:tempSpeed,
+                angle:tempAngle,
+                velocityx:tempvelocityx,
+                velocityy:tempvelocityy,
+                mass:tempRadius,
+                ini : 0
+            };
+            ballCopy = JSON.clone(ball);
+                        
+            var stageGame=new Image();
+            stageGame.src="img/fondo.png";
+            var spaceCraft=new Image();
+            spaceCraft.src="img/nave-normal.png";
+            var blockA = new Image();
+            blockA.src="img/bloqueA.png";
+            var blockB = new Image();
+            blockB.src="img/bloqueB.png";
+            var blockC = new Image();
+            blockC.src="img/bloqueC.png";
+            var blockD = new Image();
+            blockD.src="img/bloqueD.png";
+            var imgBall = new Image();
+            imgBall.src="img/bola.png";
+            
+            var imgLevel = new Image();
+            imgLevel.src="img/level.png";
+            var numZero = new Image();
+            numZero.src="img/zero.png";
+            var numOne = new Image();
+            numOne.src="img/one.png";
+            var numTwo = new Image();
+            numTwo.src="img/two.png";
+            var numThree = new Image();
+            numThree.src="img/three.png";
+
+            var imgNumberLevels = new Array(numZero,numOne,numTwo,numThree);
+            
+            $(document).ready(function(){
+                $("#score-master span").html(localStorage.getItem('score'));
+                var arkanoid = document.getElementById('arkanoid');
+                context = arkanoid.getContext('2d');
+                loadMap();
+                $(window).keydown(moveSpaceCraft);
+                $('#arkanoid').mousemove(onMouseMove);
+                $('#arkanoid').click(launchBall);
+                $('#nextLevel').click(nextLevel);
+            
+                function loadMap(){
+                    $.ajax({
+                        type: 'GET',
+                        url: maps[level].urlMap,
+                        data: null,
+                        success: function(text) {
+                            fillMap(text);
+                            game = setInterval(drawBlocks,33);
+                        }
+                    });
+                }
+                function fillMap(text){
+                    var fields = text.split(/\n/);
+                    var title_map = fields.slice(0, 1);
+                    $("#title_map").html(title_map[0]);
+                    var data = fields.slice(1, fields.length);
+                    for(var row = 0; row < data.length; row += 1) {
+                        var dataFields = data[row].split(',');
+                        for(var col = 0; col < dataFields.length; col += 1){
+                            valCol = col==0?1:(col * widthBlock)+1;
+                            valRow = row==0?1:(row * heightBlock)+1;
+                            lifeBlock = 0;
+                            switch($.trim(dataFields[col])){
+                                case "A":
+                                    blockImage = blockA;
+                                    lifeBlock = 1;
+                                    break;
+                                case "B":
+                                    blockImage = blockB;
+                                    lifeBlock = 2;
+                                    break;
+                                case "C":
+                                    blockImage = blockC;
+                                    lifeBlock = 3;
+                                    break;
+                                case "D":
+                                    blockImage = blockD;
+                                    lifeBlock = -1;
+                                    break;
+                            }
+                            if(lifeBlock!=0){
+                                tempBlock = {img:blockImage, y:valRow,x:valCol, life:lifeBlock, speed:speedBlock,mass:massBlock, width: widthBlock, height:heightBlock};
+                                blocks.push(tempBlock);
+                            }
+                        }
+                    } 
+                }
+                
+                function nextLevel(){
+                    clearInterval(game);
+                    //ball.ini = 0;
+                    spaceCraftObj.x = x;
+                    ballTemp = JSON.clone(ballCopy);
+                    ballTemp.x = spaceCraftObj.x + spaceCraftObj.width/2;
+                    ball = ballTemp;
+                    level = level + 1; 
+                    loadMap();
+                }
+                
+                function drawBlocks(){                      
+                    $("#score span").html(score);
+                    $("#level span").html(level);
+                    $("#lives span").html(lives);                    
+                    context.drawImage(stageGame,0,0,795,460);
+                    if(StageClear()){
+                        nextLevel();
+                    }
+                    context.beginPath();
+                    if(ball.ini==1){
+                        ball.nextx = (ball.x += ball.velocityx);
+                        ball.nexty = (ball.y += ball.velocityy);
+                        validateBlocks();
+                    }
+                    for(var i = 0; i < blocks.length; i++ ){
+                        block = blocks[i];
+                        context.drawImage(block.img,block.x,block.y);
+                    }
+                    
+                    //console.log(spaceCraftObj.limit, (spaceCraftObj.x + spaceCraftObj.width),spaceCraftObj.x);
+                    
+                    if ((spaceCraftObj.x + spaceCraftObj.width) < spaceCraftObj.limit){
+                        spaceCraftObj.x = spaceCraftObj.x+spaceCraftObj.velocity; 
+                    }else if(spaceCraftObj.x  > spaceCraftObj.limit) {
+                        //console.log('si resta');
+                        spaceCraftObj.x = spaceCraftObj.x + spaceCraftObj.velocity; 
+                    }
+                    if(spaceCraftObj.x <= 0){
+                        spaceCraftObj.x = 0; 
+                    }
+                    if((spaceCraftObj.x + spaceCraftObj.width) >= 795){
+                        spaceCraftObj.x = 795 - spaceCraftObj.width;
+                    }
+
+                    if(ball.ini==0 ){
+                        context.drawImage(imgLevel, (arkanoid.width / 2) - 129, (arkanoid.height / 2) - 100);
+                        context.drawImage(imgNumberLevels[level], (arkanoid.width / 2) - 16, (arkanoid.height / 2) + 30);
+                        ball.x = spaceCraftObj.x + (spaceCraftObj.width / 2);
+                    }
+                    //                    context.fillStyle = '#000000';
+                    var pattern = context.createPattern(imgBall, "repeat");
+                    context.fillStyle = pattern;
+                    //context.strokeStyle = pattern;
+                    context.arc(ball.x,ball.y,ball.radius,0,Math.PI*2,true);
+                    //                    context.stroke();
+                    context.fill();
+                    context.closePath();                    
+                    context.drawImage(spaceCraft, spaceCraftObj.x, spaceCraftObj.y, spaceCraftObj.width, spaceCraftObj.height);
+                    if (ball.ini == 1)  collision(spaceCraftObj);
+                    //if(collision(spaceCraftObj) && ball.ini==1){
+                    //ball.angle = 360 - ball.angle;
+                    // updateBall();                       
+                    //}                  
+                    //if ( (ball.x >= arkanoid.width - ball.radius || ball.x <= ball.radius )  && (ball.y >= arkanoid.height - ball.radius || ball.y <= ball.radius) ){
+                    if ( (ball.x >= arkanoid.width - ball.radius || ball.x <= ball.radius )  && (ball.y <= ball.radius) ){
+                        ball.angle = ((ball.angle*6)+3) - ball.angle;       
+                        updateBall();
+                    }
+                    else if (ball.x > arkanoid.width - ball.radius || ball.x < ball.radius ) {
+                        ball.angle = 180 - ball.angle;
+                        updateBall();
+                        //} else if (ball.y > arkanoid.height - ball.radius || ball.y < ball.radius) {
+                    } else if (ball.y < ball.radius) {                    
+                        ball.angle = 360 - ball.angle;
+                        updateBall();
+                    }
+                    if(ball.y+ball.radius > 440 && ball.y+ball.radius < 470 ){
+                        ballTemp = JSON.clone(ballCopy);
+                        ballTemp.x = spaceCraftObj.x + spaceCraftObj.width/2;
+                        ball = ballTemp;
+                        lives = lives - 1;
+                    }
+                    if(lives ==  0){
+                        clearInterval(game);
+                        score = 0;
+                        level = 0;
+                        lives = 3;
+                        window.location = "creditos.html";
+                        loadMap();
+                    }
+                }
+
+                function updateBall(){
+                    tempRadians = ball.angle * Math.PI/180;
+                    ball.velocityx = Math.cos(tempRadians)*ball.speed;
+                    ball.velocityy = Math.sin(tempRadians)*ball.speed;
+                }
+                function validateBlocks(){
+                    var blocksTemp = [];
+                    for(var i = 0; i < blocks.length; i++ ){
+                        block = blocks[i];
+                        if(!collision(block)){
+                            blocksTemp.push(block);
+                        }
+                        else{
+                            if(block.life > 0){
+                                score = score + increScore;
+                                block.life = block.life - 1
+                                if(localStorage.getItem('score') < score){
+                                    localStorage.setItem('score',score); 
+                                }
+                                $("#score-master span").html(localStorage.getItem('score'));
+                            }
+                            if(block.life > 0 || block.life < 0){
+                                blocksTemp.push(block);
+                                //console.log(block);
+                                blockImage = block.img;
+                                switch(block.life){
+                                    case 1:
+                                        blockImage = blockA;
+                                        break;
+                                    case 2:
+                                        blockImage = blockB;
+                                        break;
+                                }
+                                block.img = blockImage;
+                            }
+                            //ball.angle = 360 - ball.angle;
+                            //updateBall();                        
+                        }
+                    }
+                    blocks = blocksTemp;
+                }
+            
+                function moveSpaceCraft(event){
+                    if(event.keyCode==38 || event.keyCode==32){
+                        launchBall();
+                    }
+                    //console.log(event.keyCode);
+                    if(event.keyCode==37){
+                        if (x - dx > 0){
+                            spaceCraftObj.velocity = dx;
+                            spaceCraftObj.limit = spaceCraftObj.x - 90;
+                        }
+                        // spaceCraftObj.x = x;
+                    }
+                    if(event.keyCode==39){
+                        if (x + dx < 675){
+                            spaceCraftObj.velocity = dx * -1;
+                            spaceCraftObj.limit = spaceCraftObj.x + spaceCraftObj.width + 90;
+                        }                    
+                        //spaceCraftObj.x = x;
+                    }
+                    /*if(ball.ini==0){
+                        ball.x = spaceCraftObj.x + (spaceCraftObj.width / 2);
+                    }*/
+                }
+                
+                function launchBall(){
+                    ball.ini = 1;
+                }
+                
+                function onMouseMove(evt) {
+                    if (evt.pageX > canvasMinX && evt.pageX + spaceCraftObj.width < canvasMaxX) {
+                        spaceCraftObj.x = evt.pageX;
+                        if(ball.ini==0){
+                            ball.x = spaceCraftObj.x + (spaceCraftObj.width / 2);
+                        }
+                    }
+                }
+                
+                function StageClear(){
+                    var r = true;
+                    for(i = 0; i < blocks.length; i++){
+                        block = blocks[i];
+                        //console.log(block)
+                        if(block.life > 0) r = false;                
+                    }
+                    return r;
+                }
+                               
+                
+                function collision(rect) {
+                    var circleDistanceX = Math.abs(ball.x - rect.x - rect.width/2);
+                    var circleDistanceY = Math.abs(ball.y - rect.y - rect.height/2);
+ 
+                    if (circleDistanceX > (rect.width/2 + ball.radius)) { return false; }
+                    if (circleDistanceY > (rect.height/2 + ball.radius)) { return false; }
+ 
+                    if (circleDistanceX <= (rect.width/2)) {
+                        ball.angle = 360 - ball.angle;
+                        updateBall();
+                        return true; 
+                    }
+                    if (circleDistanceY <= (rect.height/2)) { 
+                        ball.angle = 180 - ball.angle;
+                        updateBall();
+                        return true; 
+                    }
+ 
+                    var cornerDistance_sq = Math.pow(circleDistanceX - rect.width/2, 2) + Math.pow(circleDistanceY - rect.height/2, 2);
+ 
+                    if (cornerDistance_sq <= (Math.pow(ball.radius, 2))){
+                        ball.angle = ((ball.angle*6)+3) - ball.angle; 
+                        updateBall();
+                        return true;
+                    }
+                    return false;
+                }
+                
+                //                function save_score(){
+                //                    if(typeof(Storage)!=="undefined"){
+                //                        $("#score span").html(localStorage.score);
+                //                        
+                //                    }else{
+                //                        console.log("Sorry! No web storage support..");
+                //                    }
+                //                }
+            });
+        </script>
+    </head>
+    <body>
+        <div id="container">
+            <h1 id="title_map"></h1>
+            <div id="messages">
+                <div id="score">
+                    <span></span>
+                    SCORE
+                </div>
+                <div id="level">
+                    <span></span>
+                    LEVEL
+                </div>
+                <div id="lives">
+                    <span></span>
+                    LIVES
+                </div>
+                <div id="score-master">
+                    <span></span>
+                    SCORE MASTER
+                </div>
+            </div>
+
+            <canvas id="arkanoid" width="795" height="460">
+                This text is displayed if your browser does not support HTML5 Canvas.
+            </canvas>
+            <div id="nextLevel"><a href="creditos.html" title="Créditos" alt="Créditos">Creditos</a></div>
+        </div>
+        <audio autoplay loop style='display:none;'>
+          <source src="6pack.ogg" type="audio/ogg" />
+          <source src="6pack.mp3" type="audio/mp3" />
+          Your browser does not support the audio tag.
+        </audio> 
+    </body>
+</html>
