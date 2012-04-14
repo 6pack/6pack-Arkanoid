@@ -1,0 +1,72 @@
+/* 
+    Document   : styles
+    Created on : 14/04/2012, 09:18:44 AM
+    Author     : lucho
+    Description:
+        Purpose of the stylesheet follows.
+*/
+
+/* 
+   TODO customize this sample style
+   Syntax recommendation http://www.w3.org/TR/REC-CSS2/
+*/
+@font-face {
+    font-family: 'PresleyPressExtraBold';
+    src: url('../font/ppressexb-webfont.eot');
+    src: url('../font/ppressexb-webfont.eot?#iefix') format('embedded-opentype'),
+        url('../font/ppressexb-webfont.woff') format('woff'),
+        url('../font/ppressexb-webfont.ttf') format('truetype'),
+        url('../font/ppressexb-webfont.svg#PresleyPressExtraBold') format('svg');
+    font-weight: normal;
+    font-style: normal;
+
+}
+
+a{
+    color: white;
+}
+
+body{
+    background: url(../img/bg_repeat_x.jpg) repeat-x top left #EA7100;
+    font-family: 'PresleyPressExtraBold';
+    color : #182943;
+
+}
+#container{
+    background: url("../img/cuadro.png") no-repeat scroll left top transparent;
+    margin: 0 auto;
+    width: 902px;
+    height: 617px;
+}
+#container h1{
+    color: #182943;
+    display: block;
+    font-size: 25px;
+    margin: 0 auto;
+    padding: 16px 0 0 0;
+    text-align: center;
+}
+
+#container #arkanoid{
+    display: inline-block;
+    margin: 30px 50px;
+    width: 800px;
+}
+#container #messages{
+    display: block;
+    margin: 0 auto;
+    vertical-align: top;
+    width: 270px;
+}
+#container #messages div{
+    color : #502201;
+    display : inline-block;
+    font-size: 13px;
+    margin: 1px 5px;
+}
+#container #messages span{
+    color : #A6111B;
+    display: block;
+    font-size: 16px;
+    text-align: center;
+}
